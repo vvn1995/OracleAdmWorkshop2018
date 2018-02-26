@@ -1,0 +1,67 @@
+1. Создать последовательность для primary key DEPARTMENT: начало с 100, без ограничений, без кэширования. 
+CREATE SEQUENCE HR.MY_DEPARTMENTS_SEQ NOMINVALUE NOMAXVALUE INCREMENT BY 1 START WITH 100 NOCACHE NOORDER NOCYCLE;
+
+2. Выбрать из словаря данных параметры созданной последовательности. 
+SELECT * FROM ALL_SEQUENCES WHERE SEQUENCE_NAME = 'MY_DEPARTMENTS_SEQ';
+
+3. Создать неуникальный индекс на произвольном столбце EMPLOYEES, вывести инфо о нем из словаря данных (имя, столбцы, тип, видимость).
+CREATE INDEX HR.MY_EMP_FIRST_NAME_INDEX ON HR.EMPLOYEES(FIRST_NAME);
+SELECT * FROM ALL_INDEXES WHERE INDEX_NAME = 'MY_EMP_FIRST_NAME_INDEX';
+
+4. Создать триггер, обеспечивающий генерацию нового номера отдела, используя sequence.
+CREATE OR REPLACE TRIGGER HR.DEPARTMENTS_BEFORE_INSERT
+BEFORE INSERT
+    ON HR.DEPARTMENTS
+    FOR EACH ROW    
+BEGIN
+    :NEW.DEPARTMENT_ID := HR.MY_DEPARTMENTS_SEQ.nextval;
+END;
+
+5. Модифицировать последовательность, ограничив сверху так, чтобы она закончилась на следующей вставке.
+CREATE SEQUENCE HR.MY_DEPARTMENTS_SEQ2 NOMINVALUE MAXVALUE 100 INCREMENT BY 1 START WITH 100 NOCACHE NOORDER NOCYCLE;
+
+6. Модифицировать триггер на вставку так, чтобы исключение из п.5 вызывалось явно и было ПОЛЬЗОВАТЕЛЬСКИМ. Код придумать любой.
+CREATE OR REPLACE TRIGGER HR.DEPARTMENTS_BEFORE_INSERT
+BEFORE INSERT
+    ON HR.DEPARTMENTS
+    FOR EACH ROW  
+DECLARE
+    end_seq EXCEPTION;	
+	PRAGMA EXCEPTION_INIT(end_seq, -8004);
+BEGIN
+    :NEW.DEPARTMENT_ID := HR.MY_DEPARTMENTS_SEQ2.nextval;
+EXCEPTION	
+    WHEN end_seq THEN
+        raise_application_error(-20002, 'Sequence for DEPARTMENT_ID have ended.');
+END;
+
+7. Генерировать всякий раз исключение, если делается попытка изменения зарплаты ген.директора.
+CREATE OR REPLACE TRIGGER HR.EMPLOYEES_BEFORE_UPDATE
+BEFORE UPDATE
+    ON HR.EMPLOYEES
+    FOR EACH ROW   
+DECLARE
+    prez_salary EXCEPTION;	
+BEGIN
+    IF :NEW.JOB_ID = 'AD_PRES' AND :NEW.SALARY != :OLD.SALARY THEN
+	    RAISE prez_salary;
+	END IF;
+EXCEPTION	
+    WHEN prez_salary THEN
+        raise_application_error(-20001, 'You cannot change President''s salary.');
+END;
+
+8. Создать триггер на регистрацию пользователя с записью времени и имени юзера в отлельную таблицу. Создать представление, показавающее пользователю только его входы.
+CREATE TABLE MY_LOGON_TABLE (LOGON_TIME DATE, USER_NAME VARCHAR2(100));
+
+CREATE OR REPLACE TRIGGER MY_LOGON_TRIGGER
+    AFTER LOGON ON DATABASE
+BEGIN
+    INSERT INTO MY_LOGON_TABLE (LOGON_TIME, USER_NAME) VALUES (SYSDATE, USER);
+END;
+
+CREATE VIEW MY_LOGON_VIEW 
+    AS (SELECT TO_CHAR(LOGON_TIME, 'HH24:MI:SS DD.MM.YYYY') "LOGON_TIME"
+    FROM MY_LOGON_TABLE 
+    WHERE USER_NAME = USER);
+GRANT SELECT ON MY_LOGON_VIEW TO PUBLIC;
