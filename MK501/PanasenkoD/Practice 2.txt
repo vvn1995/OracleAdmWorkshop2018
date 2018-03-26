@@ -1,6 +1,6 @@
 3.
-Øàáëîí - pana_conf.html
-Ñêðèïòû - scripts.rar
+Ð¨Ð°Ð±Ð»Ð¾Ð½ - pana_conf.html
+Ð¡ÐºÑ€Ð¸Ð¿Ñ‚Ñ‹ - scripts.rar
 
 4. 
 SQL> SELECT instance_name, status,shutdown_pending,active_state FROM v$instance;
@@ -22,7 +22,7 @@ FLASHBACK_ON
 NO
 
 5.
-Ôàéë - spfilepana2.ora
+Ð¤Ð°Ð¹Ð» - spfilepana2.ora
 
 6.
 SQL> ALTER SYSTEM SET open_cursors=400 SCOPE = MEMORY;
@@ -32,10 +32,10 @@ NAME                    VALUE
 ----------------------- -----------------------
 open_cursors            400
 
-Èç ôàéëà èíèöèàëèçàöèè
+Ð˜Ð· Ñ„Ð°Ð¹Ð»Ð° Ð¸Ð½Ð¸Ñ†Ð¸Ð°Ð»Ð¸Ð·Ð°Ñ†Ð¸Ð¸
 open_cursors=300
 
-7.à
+7.Ð°
 SQL> select open_mode from v$database;
 OPEN_MODE
 ------------------------------------------------------------
@@ -66,7 +66,7 @@ READ ONLY
 7.b
 SQL> ALTER SYSTEM ENABLE RESTRICTED SESSION;
 
-Ïîïûòêà ïîäêëþ÷èòüñÿ ê áàçå:
+ÐŸÐ¾Ð¿Ñ‹Ñ‚ÐºÐ° Ð¿Ð¾Ð´ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒÑÑ Ðº Ð±Ð°Ð·Ðµ:
 [oracle@localhost ~]$ sqlplus ANONYMOUS/anon@pana2 
 SQL*Plus: Release 11.2.0.1.0 Production on Mon Mar 26 16:30:33 2018
 Copyright (c) 1982, 2009, Oracle.  All rights reserved.
@@ -75,7 +75,7 @@ ORA-12526: TNS:listener: all appropriate instances are in restricted mode
 
 SQL> ALTER SYSTEM DISABLE RESTRICTED SESSION;
 
-Ïîïûòêà ïîäêëþ÷èòüñÿ ê áàçå:
+ÐŸÐ¾Ð¿Ñ‹Ñ‚ÐºÐ° Ð¿Ð¾Ð´ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒÑÑ Ðº Ð±Ð°Ð·Ðµ:
 [oracle@localhost ~]$ sqlplus ANONYMOUS/anon@pana2 
 SQL*Plus: Release 11.2.0.1.0 Production on Mon Mar 26 16:31:09 2018
 Copyright (c) 1982, 2009, Oracle.  All rights reserved.
@@ -84,35 +84,35 @@ Oracle Database 11g Enterprise Edition Release 11.2.0.1.0 - 64bit Production
 With the Partitioning, OLAP, Data Mining and Real Application Testing options
 SQL> 
 
-7.ñ
-Ê áàçå ïîäêëþ÷åí ïîëüçîâàòåëü ANONYMOUS.
+7.Ñ
+Ðš Ð±Ð°Ð·Ðµ Ð¿Ð¾Ð´ÐºÐ»ÑŽÑ‡ÐµÐ½ Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»ÑŒ ANONYMOUS.
 
 SQL> shutdown normal;
 
-Òîëüêî ïîñëå îòêëþ÷åíèÿ ANONYMOUS ïîÿâëÿåòñÿ òåêñò
+Ð¢Ð¾Ð»ÑŒÐºÐ¾ Ð¿Ð¾ÑÐ»Ðµ Ð¾Ñ‚ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ñ ANONYMOUS Ð¿Ð¾ÑÐ²Ð»ÑÐµÑ‚ÑÑ Ñ‚ÐµÐºÑÑ‚
 Database closed.
 Database dismounted.
 ORACLE instance shut down.
 
 
-Ê áàçå ïîäêëþ÷åí ïîëüçîâàòåëü ANONYMOUS, âûïîëíÿþùèé òðàíçàêöèþ.
+Ðš Ð±Ð°Ð·Ðµ Ð¿Ð¾Ð´ÐºÐ»ÑŽÑ‡ÐµÐ½ Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»ÑŒ ANONYMOUS, Ð²Ñ‹Ð¿Ð¾Ð»Ð½ÑÑŽÑ‰Ð¸Ð¹ Ñ‚Ñ€Ð°Ð½Ð·Ð°ÐºÑ†Ð¸ÑŽ.
 
 SQL> shutdown transactional;
 
-Òîëüêî ïîñëå âûïîëíåíèÿ ANONYMOUS êîìàíäû COMMIT ïîÿâëÿåòñÿ òåêñò
+Ð¢Ð¾Ð»ÑŒÐºÐ¾ Ð¿Ð¾ÑÐ»Ðµ Ð²Ñ‹Ð¿Ð¾Ð»Ð½ÐµÐ½Ð¸Ñ ANONYMOUS ÐºÐ¾Ð¼Ð°Ð½Ð´Ñ‹ COMMIT Ð¿Ð¾ÑÐ²Ð»ÑÐµÑ‚ÑÑ Ñ‚ÐµÐºÑÑ‚
 Database closed.
 Database dismounted.
 ORACLE instance shut down.
 
 
-Ê áàçå ïîäêëþ÷åí ïîëüçîâàòåëü ANONYMOUS, âûïîëíÿþùèé òðàíçàêöèþ.
+Ðš Ð±Ð°Ð·Ðµ Ð¿Ð¾Ð´ÐºÐ»ÑŽÑ‡ÐµÐ½ Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»ÑŒ ANONYMOUS, Ð²Ñ‹Ð¿Ð¾Ð»Ð½ÑÑŽÑ‰Ð¸Ð¹ Ñ‚Ñ€Ð°Ð½Ð·Ð°ÐºÑ†Ð¸ÑŽ.
 
 SQL> shutdown immediate;
 Database closed.
 Database dismounted.
 ORACLE instance shut down.
 
-Ïîëüçîâàòåëü ANONYMOUS ïîëó÷èë ñîîáùåíèå î íåâîçìîæíîñòè âûïîëíåíèÿ COMMIT;
+ÐŸÐ¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»ÑŒ ANONYMOUS Ð¿Ð¾Ð»ÑƒÑ‡Ð¸Ð» ÑÐ¾Ð¾Ð±Ñ‰ÐµÐ½Ð¸Ðµ Ð¾ Ð½ÐµÐ²Ð¾Ð·Ð¼Ð¾Ð¶Ð½Ð¾ÑÑ‚Ð¸ Ð²Ñ‹Ð¿Ð¾Ð»Ð½ÐµÐ½Ð¸Ñ COMMIT;
 
 
 SQL> shutdown abort;
@@ -163,10 +163,10 @@ VALUE
 ALL_ROWS
 RULE
 
-Åñëè íå ñîõðàíÿòü çíà÷åíèå èçìåíåííûõ ïàðàìåòðîâ â spfile, òî îíè áóäóò 
-äåéñòâèòåëüíû òîëüêî äëÿ òåêóùåãî ýêçåìïëÿðà áàçû äàííûõ.
+Ð•ÑÐ»Ð¸ Ð½Ðµ ÑÐ¾Ñ…Ñ€Ð°Ð½ÑÑ‚ÑŒ Ð·Ð½Ð°Ñ‡ÐµÐ½Ð¸Ðµ Ð¸Ð·Ð¼ÐµÐ½ÐµÐ½Ð½Ñ‹Ñ… Ð¿Ð°Ñ€Ð°Ð¼ÐµÑ‚Ñ€Ð¾Ð² Ð² spfile, Ñ‚Ð¾ Ð¾Ð½Ð¸ Ð±ÑƒÐ´ÑƒÑ‚ 
+Ð´ÐµÐ¹ÑÑ‚Ð²Ð¸Ñ‚ÐµÐ»ÑŒÐ½Ñ‹ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ Ð´Ð»Ñ Ñ‚ÐµÐºÑƒÑ‰ÐµÐ³Ð¾ ÑÐºÐ·ÐµÐ¼Ð¿Ð»ÑÑ€Ð° Ð±Ð°Ð·Ñ‹ Ð´Ð°Ð½Ð½Ñ‹Ñ….
 
-10.à
+10.Ð°
 SQL> CREATE PROFILE app_owner_prof LIMIT SESSIONS_PER_USER UNLIMITED CONNECT_TIME UNLIMITED;
 CREATE USER APP_OWNER IDENTIFIED BY 123456;
 ALTER USER APP_OWNER PROFILE app_owner_prof;
