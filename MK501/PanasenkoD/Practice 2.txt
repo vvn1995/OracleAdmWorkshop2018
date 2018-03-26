@@ -1,0 +1,213 @@
+3.
+Шаблон - pana_conf.html
+Скрипты - scripts.rar
+
+4. 
+SQL> SELECT instance_name, status,shutdown_pending,active_state FROM v$instance;
+INSTANCE_NAME                                    STATUS
+------------------------------------------------ ------------------------------------ 
+pana2                                            OPEN
+
+SHUTDOWN_   ACTIVE_STATE
+----------- ---------------------------
+NO          NORMAL
+
+SQL> SELECT name, log_mode, flashback_on FROM v$database;
+NAME                        LOG_MODE                             
+--------------------------- ------------------------------------ 
+PANA2                       NOARCHIVELOG                         
+
+FLASHBACK_ON
+------------------------------------------------------
+NO
+
+5.
+Файл - spfilepana2.ora
+
+6.
+SQL> ALTER SYSTEM SET open_cursors=400 SCOPE = MEMORY;
+
+SQL> SELECT name, value FROM v$parameter where name = 'open_cursors';
+NAME                    VALUE                  
+----------------------- -----------------------
+open_cursors            400
+
+Из файла инициализации
+open_cursors=300
+
+7.а
+SQL> select open_mode from v$database;
+OPEN_MODE
+------------------------------------------------------------
+READ WRITE
+
+SQL> shutdown normal;
+Database closed.
+Database dismounted.
+ORACLE instance shut down.
+
+SQL> startup mount;
+ORACLE instance started.
+Total System Global Area  680607744 bytes
+Fixed Size		    2216464 bytes
+Variable Size		  427822576 bytes
+Database Buffers	  243269632 bytes
+Redo Buffers		    7299072 bytes
+Database mounted.
+
+SQL> alter database open read only;
+Database altered.
+
+SQL> select open_mode from v$database;
+OPEN_MODE
+------------------------------------------------------------
+READ ONLY
+
+7.b
+SQL> ALTER SYSTEM ENABLE RESTRICTED SESSION;
+
+Попытка подключиться к базе:
+[oracle@localhost ~]$ sqlplus ANONYMOUS/anon@pana2 
+SQL*Plus: Release 11.2.0.1.0 Production on Mon Mar 26 16:30:33 2018
+Copyright (c) 1982, 2009, Oracle.  All rights reserved.
+ERROR:
+ORA-12526: TNS:listener: all appropriate instances are in restricted mode
+
+SQL> ALTER SYSTEM DISABLE RESTRICTED SESSION;
+
+Попытка подключиться к базе:
+[oracle@localhost ~]$ sqlplus ANONYMOUS/anon@pana2 
+SQL*Plus: Release 11.2.0.1.0 Production on Mon Mar 26 16:31:09 2018
+Copyright (c) 1982, 2009, Oracle.  All rights reserved.
+Connected to:
+Oracle Database 11g Enterprise Edition Release 11.2.0.1.0 - 64bit Production
+With the Partitioning, OLAP, Data Mining and Real Application Testing options
+SQL> 
+
+7.с
+К базе подключен пользователь ANONYMOUS.
+
+SQL> shutdown normal;
+
+Только после отключения ANONYMOUS появляется текст
+Database closed.
+Database dismounted.
+ORACLE instance shut down.
+
+
+К базе подключен пользователь ANONYMOUS, выполняющий транзакцию.
+
+SQL> shutdown transactional;
+
+Только после выполнения ANONYMOUS команды COMMIT появляется текст
+Database closed.
+Database dismounted.
+ORACLE instance shut down.
+
+
+К базе подключен пользователь ANONYMOUS, выполняющий транзакцию.
+
+SQL> shutdown immediate;
+Database closed.
+Database dismounted.
+ORACLE instance shut down.
+
+Пользователь ANONYMOUS получил сообщение о невозможности выполнения COMMIT;
+
+
+SQL> shutdown abort;
+ORACLE instance shut down.
+
+SQL> startup mount;
+ORACLE instance started.
+Total System Global Area  680607744 bytes
+Fixed Size		    2216464 bytes
+Variable Size		  432016880 bytes
+Database Buffers	  239075328 bytes
+Redo Buffers		    7299072 bytes
+Database mounted.
+
+SQL> RECOVER DATABASE;
+Media recovery complete.
+
+8.
+SQL> SELECT database_status FROM v$instance;
+DATABASE_STATUS
+---------------------------------------------------
+ACTIVE
+
+SQL>  ALTER SYSTEM SUSPEND;
+System altered.
+
+SQL> SELECT database_status FROM v$instance;
+DATABASE_STATUS
+---------------------------------------------------
+SUSPENDED
+
+SQL>  ALTER SYSTEM RESUME;
+System altered.
+
+SQL> SELECT database_status FROM v$instance;
+DATABASE_STATUS
+---------------------------------------------------
+ACTIVE
+
+9.
+SQL> alter system set optimizer_mode = rule scope=spfile;
+select value from v$parameter where name='optimizer_mode'
+union all
+select value from v$spparameter where name='optimizer_mode';
+
+VALUE
+--------------------------------------------------------
+ALL_ROWS
+RULE
+
+Если не сохранять значение измененных параметров в spfile, то они будут 
+действительны только для текущего экземпляра базы данных.
+
+10.а
+SQL> CREATE PROFILE app_owner_prof LIMIT SESSIONS_PER_USER UNLIMITED CONNECT_TIME UNLIMITED;
+CREATE USER APP_OWNER IDENTIFIED BY 123456;
+ALTER USER APP_OWNER PROFILE app_owner_prof;
+GRANT UNLIMITED TABLESPACE TO APP_OWNER;
+GRANT SELECT_CATALOG_ROLE TO APP_OWNER;
+
+10.b
+SQL> CREATE PROFILE limited_prof LIMIT SESSIONS_PER_USER 2 IDLE_TIME 900;
+CREATE USER LIMITED IDENTIFIED BY 123456;
+ALTER USER LIMITED QUOTA 50M ON USERS;
+
+11. 
+SQL> select username, default_tablespace, profile, account_status from dba_users where username='APP_OWNER';
+USERNAME
+--------------------------------------------------------------------------------
+DEFAULT_TABLESPACE
+--------------------------------------------------------------------------------
+PROFILE
+--------------------------------------------------------------------------------
+ACCOUNT_STATUS
+--------------------------------------------------------------------------------
+APP_OWNER
+USERS
+APP_OWNER_PROF
+OPEN
+
+SQL> select username, default_tablespace, profile, account_status from dba_users where username='LIMITED';
+
+USERNAME
+--------------------------------------------------------------------------------
+DEFAULT_TABLESPACE
+--------------------------------------------------------------------------------
+PROFILE
+--------------------------------------------------------------------------------
+ACCOUNT_STATUS
+--------------------------------------------------------------------------------
+LIMITED
+USERS
+LIMITED_PROF
+OPEN
+
+
+13.
+ALTER PROFILE DEFAULT LIMIT SESSIONS_PER_USER 2 IDLE_TIME 900;
