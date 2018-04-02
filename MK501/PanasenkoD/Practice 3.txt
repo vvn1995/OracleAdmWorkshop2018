@@ -1,0 +1,210 @@
+SQL1 - первый сеанс, SQL2 - второй сеанс
+
+Разрешить блокировку 2 способами:
+1. зафиксировать/откатить удерживающую транзакцию
+SQL1> select * from block_test;
+NAME            PRIICE
+--------------- ---------
+cup             10
+book            90
+
+SQL2> select * from block_test;
+NAME            PRIICE
+--------------- ---------
+cup             10
+book            90
+
+SQL1> update block_test set price = 20 where name = 'cup';
+1 row updated.
+
+SQL2> update block_test set price = 30 where name = 'cup';
+нет вывода, приглашение командной строки не появляется
+
+SQL1> commit;                                     |  SQL1> rollback;
+Commit complete.                                  |  Rollback complete.
+                                                  |
+В терминале SQL2 после этого появляется вывод     |  В терминале SQL2 после этого появляется вывод
+1 row updated.                                    |  1 row updated. 
+                                                  |
+SQL1> select * from block_test;                   |  SQL1> select * from block_test; 
+NAME            PRIICE                            |  NAME            PRIICE  
+--------------- ---------                         |  --------------- ---------   
+cup             20                                |  cup             10  
+book            90                                |  book            90 
+                                                  |
+SQL2> select * from block_test;                   |  SQL2> select * from block_test; 
+NAME            PRIICE                            |  NAME            PRIICE 
+--------------- ---------                         |  --------------- --------- 
+cup             30                                |  cup             30 
+book            90                                |  book            90  
+
+2. убить сессию
+Вывод информации о сессиях:
+SELECT s.inst_id,
+       s.sid,
+       s.serial#,
+       --s.sql_id,
+       p.spid,
+       s.username,
+       s.program
+FROM   gv$session s
+       JOIN gv$process p ON p.addr = s.paddr AND p.inst_id = s.inst_id
+WHERE  s.type != 'BACKGROUND';
+INST_ID    SID        SERIAL#    SPID       USERNAME   PROGRAM
+---------- ---------- ---------- ---------- ---------- ---------------------------------------------
+1          9          11         16863      SYS        sqlplus@localhost.localdomain (TNS V1-V3)
+1          125        7          19284      SYS        sqlplus@localhost.localdomain (TNS V1-V3)
+
+Вывод информации о своем SID:
+SQL1> select distinct sid from v$mystat;
+SID
+----------
+9
+
+SQL2> select distinct sid from v$mystat;
+SID
+----------
+125
+
+SQL1> select * from block_test;
+NAME            PRIICE
+--------------- ---------
+cup             10
+book            90
+
+SQL2> select * from block_test;
+NAME            PRIICE
+--------------- ---------
+cup             10
+book            90
+
+SQL1> update block_test set price = 20 where name = 'cup';
+1 row updated.
+
+SQL2> update block_test set price = 30 where name = 'cup';
+нет вывода, приглашение командной строки не появляется
+отмена операции с помощью ctrc+c
+ERROR at line 1:
+ORA-01013: user requested cancel of current operation
+
+SQL2> ALTER SYSTEM KILL SESSION '9,11';
+System altered.
+
+SQL2> update block_test set price = 30 where name = 'cup';
+1 row updated.
+
+SQL2> select * from block_test;
+NAME            PRIICE
+--------------- ---------
+cup             30
+book            90
+
+При попытке выполнений операций в окне для SQL1 появляется ошибка 
+ORA-00028: your session has been killed
+
+
+
+Создать Deadlock на таблице
+1. создать таблицу произвольной структуры с одним PRIMARY KEY
+SQL1> CREATE TABLE deadlock_test (dead_id int not null, dead_name varchar2(20), CONSTRAINT dead_pk PRIMARY KEY (dead_id));
+Table created.
+
+SQL1> insert into deadlock_test values(1, 'book');
+1 row  created.
+
+SQL1> commit;
+Commit complete.
+
+SQL1> select * from deadlock_test;
+DEAD_ID    DEAD_NAME
+---------- ------------------------------------------------------------
+1          book
+2          cup
+
+SQL2> select * from deadlock_test;
+DEAD_ID    DEAD_NAME
+---------- ------------------------------------------------------------
+1          book
+2          cup
+
+2. изменять данные в таблице из 2 параллельных сессий для получения deadlock
+SQL1> update deadlock_test set dead_name = 'book1' where dead_id = 1;
+1 row updated.
+
+SQL2> update deadlock_test set dead_name = 'cup2' where dead_id = 2;
+1 row updated.
+
+SQL1> update deadlock_test set dead_name = 'cup1' where dead_id = 2;
+нет вывода
+
+SQL2> update deadlock_test set dead_name = 'book2' where dead_id = 1;
+нет вывода
+
+3. продемонстрировать разрешение deadlock для одной из сессий (transaction fail)
+SQL1> update deadlock_test set dead_name = 'cup1' where dead_id = 2;
+update deadlock_test set dead_name = 'cup1' where dead_id = 2
+       *
+ERROR at line 1:
+ORA-00060: deadlock detected while waiting for resource
+
+SQL2> select * from deadlock_test;
+DEAD_ID    DEAD_NAME
+---------- ------------------------------------------------------------
+1          book1
+2          cup
+
+4. выдержку из alert.log вашей системы
+Tue Mar 27 13:57:35 2018
+ORA-00060: Deadlock detected. More info in file /home/oracle/app/oracle/diag/rdbms/pana2/pana2/trace/pana2_ora_21230.trc.
+файл pana2_ora_21230.trc прикладываю
+
+
+
+Управление сегментами отмены
+1. совершить длительную транзакцию (10000 Записей и более) и проанализировать статистику отмены (V$UNDOSTAT): количество использованных блоков сегментов Undo, максимальная длительность запросов.
+CREATE TABLE undo123 (u_id int not null, u_name varchar(20), CONSTRAINT u_pk123 PRIMARY KEY (u_id));
+DECLARE
+  rand_str VARCHAR(20);
+BEGIN
+  FOR i IN 1..100000 LOOP
+    SELECT dbms_random.string('L', 18) INTO rand_str FROM dual;
+    INSERT INTO undo123 VALUES(i, rand_str);
+  END LOOP;
+  COMMIT;
+END;
+/
+UPDATE undo123 SET u_name = 'book' WHERE u_name LIKE '%a%';
+COMMIT;
+
+select TO_CHAR(BEGIN_TIME, 'HH24:MI:SS DD.MM.YYYY') "BEGIN_TIME_FORM", maxquerylen, undoblks from V$UNDOSTAT order by begin_time;
+
+BEGIN_TIME_FORM       MAXQUERYLEN UNDOBLKS
+--------------------- ----------- ----------
+15:38:33 02.04.2018   215         1826
+
+
+2. с использованием 1 вычислить размер табличного пространства отмены для поддержки 1-часового undo retention interval
+Undo Size = Optimal Undo Retention * DB_BLOCK_SIZE * UNDO_BLOCK_REP_ESC =
+= 60*60 * 16384 * 8.53 = 480 Мб
+
+3. продемонстрировать настроечные параметры для UNDO, атрибуты табличного пространства для UNDO, установленные по-умолчанию для вашей системы
+SQL> show parameter undo
+NAME	          TYPE           VALUE
+----------------- -------------- --------------
+undo_management   string         AUTO
+undo_retention    integer        900
+undo_tablespace   string         UNDOTBS1
+
+SQL> select NAME, INCLUDED_, BIGFILE, FLASHBACK from v$tablespace where name = 'UNDOTBS1';
+NAME          INCLUDED_   BIGFILE   FLASHBACK 
+------------- ----------- --------- ------------
+UNDOTBS1      YE          NO        YES
+
+4. Измененить настройки табличного пространства отмены для поддержки 1-часового гарантированного интервала хранения
+CREATE UNDO TABLESPACE undotbs2
+DATAFILE '/home/oracle/app/oracle/oradata/pana2.dbf'
+SIZE 500M AUTOEXTEND ON NEXT 5M;
+
+ALTER SYSTEM SET UNDO_TABLESPACE=UNDOTBS2 SCOPE=BOTH;
+
+ALTER SYSTEM SET undo_retention=3600 SCOPE=BOTH;
