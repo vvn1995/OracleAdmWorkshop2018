@@ -1,0 +1,112 @@
+1. Вывести текущие настройки RMAN
+RMAN> show all;
+using target database control file instead of recovery catalog
+RMAN configuration parameters for database with db_unique_name PANA2 are:
+CONFIGURE RETENTION POLICY TO REDUNDANCY 1; # default
+CONFIGURE BACKUP OPTIMIZATION OFF; # default
+CONFIGURE DEFAULT DEVICE TYPE TO DISK; # default
+CONFIGURE CONTROLFILE AUTOBACKUP OFF; # default
+CONFIGURE CONTROLFILE AUTOBACKUP FORMAT FOR DEVICE TYPE DISK TO '%F'; # default
+CONFIGURE DEVICE TYPE DISK PARALLELISM 1 BACKUP TYPE TO BACKUPSET; # default
+CONFIGURE DATAFILE BACKUP COPIES FOR DEVICE TYPE DISK TO 1; # default
+CONFIGURE ARCHIVELOG BACKUP COPIES FOR DEVICE TYPE DISK TO 1; # default
+CONFIGURE MAXSETSIZE TO UNLIMITED; # default
+CONFIGURE ENCRYPTION FOR DATABASE OFF; # default
+CONFIGURE ENCRYPTION ALGORITHM 'AES128'; # default
+CONFIGURE COMPRESSION ALGORITHM 'BASIC' AS OF RELEASE 'DEFAULT' OPTIMIZE FOR LOAD TRUE ; # default
+CONFIGURE ARCHIVELOG DELETION POLICY TO NONE; # default
+CONFIGURE SNAPSHOT CONTROLFILE NAME TO '/home/oracle/app/oracle/product/11.2.0/dbhome_1/dbs/snapcf_pana2.f'; # default
+
+2. Создать схему каталог восстановления
+SQL> CREATE TABLESPACE tools
+DATAFILE 'tttooo' size 200M autoextend off
+EXTENT MANAGEMENT local
+SEGMENT SPACE MANAGEMENT auto;
+
+SQL> CREATE USER rman IDENTIFIED BY 123456
+TEMPORARY TABLESPACE temp
+DEFAULT TABLESPACE tools
+QUOTA UNLIMITED on tools;
+
+SQL> GRANT CONNECT, RESOURCE, RECOVERY_CATALOG_OWNER TO RMAN;
+
+RMAN> connect catalog rman/123456@pana2
+connected to recovery catalog database
+
+RMAN> create catalog
+recovery catalog created
+
+RMAN> exit
+
+$ rman catalog rman/123456@pana2 target sys/1@pana2
+connected to target database: PANA2 (DBID=1509964328)
+connected to recovery catalog database
+
+RMAN> register database;
+database registered in recovery catalog
+starting full resync of recovery catalog
+full resync complete
+
+3. Выполнить полный бэкап базы как сжатый backupset вместе с архивлогами на тип DISK
+RMAN> connect target sys/1@pana2
+connected to target database: PANA2 (DBID=1509964328)
+
+RMAN> BACKUP DEVICE TYPE DISK AS BACKUPSET DATABASE PLUS ARCHIVELOG;
+Starting backup at 07.05.18
+current log archived
+using target database control file instead of recovery catalog
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: SID=19 device type=DISK
+channel ORA_DISK_1: starting archived log backup set
+channel ORA_DISK_1: specifying archived log(s) in backup set
+input archived log thread=1 sequence=87 RECID=1 STAMP=974543127
+input archived log thread=1 sequence=88 RECID=2 STAMP=975516851
+input archived log thread=1 sequence=89 RECID=3 STAMP=975516868
+channel ORA_DISK_1: starting piece 1 at 07.05.18
+channel ORA_DISK_1: finished piece 1 at 07.05.18
+piece handle=/home/oracle/app/oracle/product/11.2.0/dbhome_1/dbs/01t2ad66_1_1 tag=TAG20180507T165430 comment=NONE
+channel ORA_DISK_1: backup set complete, elapsed time: 00:00:03
+Finished backup at 07.05.18
+
+Starting backup at 07.05.18
+using channel ORA_DISK_1
+channel ORA_DISK_1: starting full datafile backup set
+channel ORA_DISK_1: specifying datafile(s) in backup set
+including current control file in backup set
+input datafile file number=00002 name=/home/oracle/app/oracle/oradata/pana2/sysaux01.dbf
+input datafile file number=00001 name=/home/oracle/app/oracle/oradata/pana2/system01.dbf
+input datafile file number=00005 name=/home/oracle/app/oracle/oradata/pana2.dbf
+input datafile file number=00003 name=/home/oracle/app/oracle/oradata/pana2/undotbs01.dbf
+input datafile file number=00007 name=/home/oracle/app/oracle/product/11.2.0/dbhome_1/dbs/tttooo
+input datafile file number=00004 name=/home/oracle/app/oracle/oradata/pana2/users01.dbf
+input datafile file number=00006 name=/home/oracle/app/oracle/product/11.2.0/dbhome_1/dbs/undots_ga.dbf
+channel ORA_DISK_1: starting piece 1 at 07.05.18
+channel ORA_DISK_1: finished piece 1 at 07.05.18
+piece handle=/home/oracle/app/oracle/product/11.2.0/dbhome_1/dbs/02t2ad6d_1_1 tag=TAG20180507T165436 comment=NONE
+channel ORA_DISK_1: backup set complete, elapsed time: 00:01:15
+Finished backup at 07.05.18
+
+Starting backup at 07.05.18
+current log archived
+using channel ORA_DISK_1
+channel ORA_DISK_1: starting archived log backup set
+channel ORA_DISK_1: specifying archived log(s) in backup set
+input archived log thread=1 sequence=90 RECID=4 STAMP=975516953
+channel ORA_DISK_1: starting piece 1 at 07.05.18
+channel ORA_DISK_1: finished piece 1 at 07.05.18
+piece handle=/home/oracle/app/oracle/product/11.2.0/dbhome_1/dbs/03t2ad8q_1_1 tag=TAG20180507T165554 comment=NONE
+channel ORA_DISK_1: backup set complete, elapsed time: 00:00:01
+Finished backup at 07.05.18
+
+4. Сделать backup control файла и spfile в каталог /bck/
+RMAN> BACKUP CURRENT CONTROLFILE FORMAT '/bcp/%U';
+Starting backup at 07.05.18
+using channel ORA_DISK_1
+channel ORA_DISK_1: starting full datafile backup set
+channel ORA_DISK_1: specifying datafile(s) in backup set
+including current control file in backup set
+channel ORA_DISK_1: starting piece 1 at 07.05.18
+channel ORA_DISK_1: finished piece 1 at 07.05.18
+piece handle=/bcp/04t2ae1b_1_1 tag=TAG20180507T170859 comment=NONE
+channel ORA_DISK_1: backup set complete, elapsed time: 00:00:01
+Finished backup at 07.05.18
